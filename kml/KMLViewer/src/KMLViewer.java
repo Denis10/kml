@@ -57,7 +57,7 @@ public class KMLViewer extends ApplicationTemplate
             // intentionally refresh the tree's model before adding the layer that contains the tree itself. This
             // prevents the tree's layer from being displayed in the tree itself.
             this.layerTree = new LayerTree(new Offset(20d, 160d, AVKey.PIXELS, AVKey.INSET_PIXELS));
-            this.layerTree.getModel().refresh(this.getWwd().getModel().getLayers());
+           // this.layerTree.getModel().refresh(this.getWwd().getModel().getLayers());
 
             // Set up a layer to display the on-screen layer tree in the WorldWindow. This layer is not displayed in
             // the layer tree's model. Doing so would enable the user to hide the layer tree display with no way of
@@ -89,7 +89,7 @@ public class KMLViewer extends ApplicationTemplate
             this.kmlAppController.setBalloonController(balloonController);
 
             // Size the World Window to take up the space typically used by the layer panel.
-            Dimension size = new Dimension(1400, 800);
+            Dimension size = new Dimension(1200, 700);
             this.setPreferredSize(size);
             this.pack();
             WWUtil.alignComponent(null, this, AVKey.CENTER);
@@ -258,7 +258,8 @@ public class KMLViewer extends ApplicationTemplate
     {
         final JFileChooser fileChooser = new JFileChooser();
         fileChooser.setMultiSelectionEnabled(true);
-        fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("KML/KMZ File", "kml", "kmz"));
+        //fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("KML/KMZ File", "kml", "kmz"));
+        fileChooser.setFileFilter(new MyCustomFilter());
 
         JMenuBar menuBar = new JMenuBar();
         appFrame.setJMenuBar(menuBar);
