@@ -13,9 +13,9 @@ import gov.nasa.worldwind.util.layertree.KMLNetworkLinkTreeNode;
 import gov.nasa.worldwind.util.layertree.LayerTree;
 import gov.nasa.worldwindx.examples.ApplicationTemplate;
 import gov.nasa.worldwindx.examples.kml.KMLApplicationController;
-import static gov.nasa.worldwindx.examples.layermanager.LayerManagerApp.start;
 import gov.nasa.worldwindx.examples.util.BalloonController;
 import gov.nasa.worldwindx.examples.util.HotSpotController;
+
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.beans.PropertyChangeEvent;
@@ -23,6 +23,8 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
 
 import javax.swing.AbstractAction;
 import javax.swing.JFileChooser;
@@ -30,8 +32,12 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTree;
 import javax.swing.SwingUtilities;
-import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeSelectionModel;
 import javax.xml.stream.XMLStreamException;
 
 /**
@@ -48,23 +54,51 @@ public class KMLViewer extends ApplicationTemplate
         protected HotSpotController hotSpotController;
         protected KMLApplicationController kmlAppController;
         protected BalloonController balloonController;
+        
+        protected JTree jTree;        
+        protected DefaultTreeModel model;
+        protected DefaultMutableTreeNode root;
 
         public AppFrame()
         {
-            super(true, false, false); // Don't include the layer panel; we're using the on-screen layer tree.
+            super(true, true, false); // Don't include the layer panel; we're using the on-screen layer tree.
 
             // Add the on-screen layer tree, refreshing model with the WorldWindow's current layer list. We
             // intentionally refresh the tree's model before adding the layer that contains the tree itself. This
             // prevents the tree's layer from being displayed in the tree itself.
             this.layerTree = new LayerTree(new Offset(20d, 160d, AVKey.PIXELS, AVKey.INSET_PIXELS));
-           // this.layerTree.getModel().refresh(this.getWwd().getModel().getLayers());
+           // this.layerTree.getModel().refresh(this.getWwd().getModel().getLayers());                                    
+           
+          //Create the nodes.
+            DefaultMutableTreeNode top = new DefaultMutableTreeNode("KML");
+            //createNodes(top);
+     
+            //Create a tree that allows one selection at a time.
+            this.jTree = new JTree(top);
+            jTree.getSelectionModel().setSelectionMode
+                    (TreeSelectionModel.SINGLE_TREE_SELECTION);
+            SelectableTreeCellRenderer renderer =
+                    new SelectableTreeCellRenderer();
+            jTree.setCellRenderer(renderer);
+          //Create the scroll pane and add the tree to it.
+            JScrollPane treeView = new JScrollPane(jTree);
+            model = (DefaultTreeModel) jTree.getModel();
+            root = (DefaultMutableTreeNode) model.getRoot();
+            //model.insertNodeInto(new DefaultMutableTreeNode("another_child"), root, root.getChildCount());            
+            this.layerPanel.removeAll();
+            Dimension dim=new Dimension(200, getHeight());
+            this.layerPanel.setPreferredSize(dim);            
+            this.layerPanel.add(treeView);
+            this.jTree.setShowsRootHandles(true);
+                 
+            
 
             // Set up a layer to display the on-screen layer tree in the WorldWindow. This layer is not displayed in
             // the layer tree's model. Doing so would enable the user to hide the layer tree display with no way of
             // bringing it back.
             this.hiddenLayer = new RenderableLayer();
             this.hiddenLayer.addRenderable(this.layerTree);
-            this.getWwd().getModel().getLayers().add(this.hiddenLayer);
+            //this.getWwd().getModel().getLayers().add(this.hiddenLayer);
 
             // Add a controller to handle input events on the layer selector and on browser balloons.
             this.hotSpotController = new HotSpotController(this.getWwd());
@@ -128,7 +162,12 @@ public class KMLViewer extends ApplicationTemplate
             layer.setName((String) kmlRoot.getField(AVKey.DISPLAY_NAME));
             layer.addRenderable(kmlController);
             this.getWwd().getModel().getLayers().add(layer);
-
+            
+            //
+            root.add(new DefaultMutableTreeNode((String) kmlRoot.getField(AVKey.DISPLAY_NAME)));
+            model.reload(root);                            
+            jTree.expandRow(0);
+                                   
             // Adds a new layer tree node for the KMLRoot to the on-screen layer tree, and makes the new node visible
             // in the tree. This also expands any tree paths that represent open KML containers or open KML network
             // links.
@@ -160,7 +199,7 @@ public class KMLViewer extends ApplicationTemplate
                     }
                 }
             });
-        }
+        }       
     }
 
     /** A <code>Thread</code> that loads a KML file and displays it in an <code>AppFrame</code>. */
@@ -277,7 +316,10 @@ public class KMLViewer extends ApplicationTemplate
                     {
                         for (File file : fileChooser.getSelectedFiles())
                         {
-                            new WorkerThread(file, appFrame).start();
+                            new WorkerThread(file, appFrame).start();                                                                                                              
+                            /*appFrame.root.add(new DefaultMutableTreeNode(file.getName()));
+                            appFrame.model.reload(appFrame.root);                            
+                            appFrame.jTree.expandRow(0);*/                                                                    
                         }
                     }
                 }
@@ -299,7 +341,7 @@ public class KMLViewer extends ApplicationTemplate
                     String status = JOptionPane.showInputDialog(appFrame, "URL");
                     if (!WWUtil.isEmpty(status))
                     {
-                        new WorkerThread(status.trim(), appFrame).start();
+                        new WorkerThread(status.trim(), appFrame).start();                        
                     }
                 }
                 catch (Exception e)
@@ -311,10 +353,13 @@ public class KMLViewer extends ApplicationTemplate
 
         fileMenu.add(openURLMenuItem);
     }
+    
+   
 
     public static void main(String[] args)
     {
         //noinspection UnusedDeclaration
         final AppFrame af = (AppFrame) start("World Wind KML Viewer", AppFrame.class);
     }
+    
 }
